@@ -74,12 +74,34 @@ router.post('/register', async (req, res) => {
 // List all stores
 router.get('/', async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, page_size } = req.query;
     const filter = {};
     if (status) filter.status = status;
 
     const stores = await Store.find(filter).sort({ createdAt: -1 });
-    res.json({ success: true, count: stores.length, stores });
+
+    const formattedItems = stores.map((s) => {
+      const obj = s.toObject ? s.toObject() : { ...s };
+      obj.id = s.storeId;
+      obj.city = s.location ? s.location.split(',')[0]?.trim() : 'Dallas';
+      obj.region = s.location && s.location.includes(',') ? s.location.split(',')[1]?.trim() : 'TX';
+      return obj;
+    });
+
+    if (page_size) {
+      return res.json({
+        success: true,
+        count: formattedItems.length,
+        stores: {
+          items: formattedItems,
+          total: formattedItems.length,
+          page: 1,
+          page_size: parseInt(page_size, 10),
+        },
+      });
+    }
+
+    res.json({ success: true, count: formattedItems.length, stores: formattedItems });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

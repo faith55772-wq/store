@@ -447,6 +447,99 @@ async function runAllTests() {
   }
 
   // --------------------------------------------------------------------------
+  // TEST GROUP 9: Windows Desktop Client (.exe) Interoperability Contract
+  // --------------------------------------------------------------------------
+  console.log('\n\x1b[34m[Test Group 9] Windows Desktop Client (.exe) Interoperability Contract\x1b[0m');
+  try {
+    // 9.1: Ready probe
+    const readyRes = await request('/ready');
+    assert(readyRes.status === 200 && readyRes.data.status === 'ready', 'GET /ready probe returns 200 ready');
+
+    // 9.2: Desktop stores list pagination contract
+    const storeListRes = await request('/api/v1/stores?page_size=100');
+    assert(
+      storeListRes.status === 200 &&
+      Array.isArray(storeListRes.data.stores?.items) &&
+      storeListRes.data.stores.items.length > 0,
+      'GET /api/v1/stores?page_size=100 returns stores.items matching desktop-agent contract'
+    );
+
+    // 9.3: Device Registration
+    const devRegRes = await request('/api/v1/devices/register', {
+      method: 'POST',
+      body: {
+        store_id: testStoreId,
+        name: 'HP-ELITEBOOK-LANE-01',
+        audio_source: 'microphone',
+      },
+    });
+    assert(devRegRes.status === 200 && !!devRegRes.data.device_id, 'POST /api/v1/devices/register creates device credentials');
+    const testDeviceId = devRegRes.data.device_id;
+
+    // 9.4: Device Approval Check
+    const devApproveRes = await request(`/api/v1/devices/${testDeviceId}/approval`);
+    assert(
+      devApproveRes.status === 200 && devApproveRes.data.approval_status === 'approved',
+      'GET /api/v1/devices/:id/approval confirms authorization status'
+    );
+
+    // 9.5: Audio Session Start
+    const sessRes = await request('/api/v1/audio/sessions', {
+      method: 'POST',
+      body: { store_id: testStoreId },
+    });
+    assert(sessRes.status === 200 && !!sessRes.data.conversation_id, 'POST /api/v1/audio/sessions starts live conversation session');
+    const convId = sessRes.data.conversation_id;
+
+    // 9.6: Audio Transcribe Segment
+    const transRes = await request('/api/v1/audio/transcribe', {
+      method: 'POST',
+      body: {
+        store_id: testStoreId,
+        conversation_id: convId,
+        capture_sequence: 1,
+        text: 'Hello, welcome in! We have the new iPhone 15 Pro Max available.',
+      },
+    });
+    assert(
+      transRes.status === 200 && transRes.data.segment && transRes.data.segment.is_final === true,
+      'POST /api/v1/audio/transcribe returns finalized transcript segment'
+    );
+
+    // 9.7: Audio Preview
+    const prevRes = await request('/api/v1/audio/transcribe/preview', {
+      method: 'POST',
+      body: { capture_sequence: 2 },
+    });
+    assert(prevRes.status === 200 && prevRes.data.segment?.preview === true, 'POST /api/v1/audio/transcribe/preview returns interim preview');
+
+    // 9.8: Real-time Coaching
+    const coachRes = await request(`/api/v1/audio/coaching/${convId}`, { method: 'POST' });
+    assert(
+      coachRes.status === 200 && coachRes.data.suggestion && typeof coachRes.data.suggestion.message === 'string',
+      'POST /api/v1/audio/coaching/:id returns actionable add-on suggestion'
+    );
+
+    // 9.9: Audio Session Finish
+    const finishRes = await request(`/api/v1/audio/sessions/${convId}/finish`, { method: 'POST' });
+    assert(finishRes.status === 200 && finishRes.data.finished === true, 'POST /api/v1/audio/sessions/:id/finish saves recording to library');
+
+    // 9.10: Native WebSocket Device Heartbeat
+    const ws = new (require('ws'))(`ws://localhost:5000/ws/device/${testDeviceId}`);
+    const wsConnected = await new Promise((resolve) => {
+      ws.on('open', () => {
+        ws.send(JSON.stringify({ type: 'heartbeat' }));
+        ws.close();
+        resolve(true);
+      });
+      ws.on('error', () => resolve(false));
+    });
+    assert(wsConnected === true, 'Native WebSocket /ws/device/:id connects & exchanges heartbeat');
+  } catch (err) {
+    assert(false, 'Group 9 Desktop Agent Interoperability test crashed', err.message);
+  }
+
+  // --------------------------------------------------------------------------
   // SUMMARY
   // --------------------------------------------------------------------------
   console.log('\n==============================================================================');

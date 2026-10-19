@@ -14,6 +14,9 @@ const recordingRoutes = require('./routes/recordingRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const overviewRoutes = require('./routes/overviewRoutes');
 const deepgramRoutes = require('./routes/deepgramRoutes');
+const deviceRoutes = require('./routes/deviceRoutes');
+const audioRoutes = require('./routes/audioRoutes');
+const WebSocket = require('ws');
 
 const app = express();
 const server = http.createServer(app);
@@ -96,6 +99,37 @@ app.use('/api/v1/overview', overviewRoutes);
 
 app.use('/api/deepgram', deepgramRoutes);
 app.use('/api/v1/deepgram', deepgramRoutes);
+
+app.use('/api/devices', deviceRoutes);
+app.use('/api/v1/devices', deviceRoutes);
+
+app.use('/api/audio', audioRoutes);
+app.use('/api/v1/audio', audioRoutes);
+
+// Ready probe endpoint
+app.get('/ready', (req, res) => {
+  res.json({ status: 'ready', timestamp: new Date() });
+});
+
+// Native WebSocket server for desktop-agent health connection (/ws/device/:id)
+const wss = new WebSocket.Server({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+  const pathname = new URL(request.url, `http://${request.headers.host || 'localhost'}`).pathname;
+  if (pathname.startsWith('/ws/device/')) {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  }
+});
+
+wss.on('connection', (ws, request) => {
+  ws.on('message', () => {
+    try {
+      ws.send(JSON.stringify({ status: 'ok', timestamp: Date.now() }));
+    } catch (e) {}
+  });
+});
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
