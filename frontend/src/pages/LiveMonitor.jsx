@@ -3,12 +3,13 @@ import {
   Radio,
   Store,
   Mic,
-  Activity,
   Volume2,
   Globe,
   Wifi,
-  Sparkles,
   ChevronDown,
+  Layers,
+  ArrowRight,
+  Clock,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
@@ -19,7 +20,7 @@ export default function LiveMonitor() {
   const streamEndRef = useRef(null);
 
   useEffect(() => {
-    // Fetch all stores to initialize monitor cards
+    // Fetch authorized stores to initialize stream cards
     api.getStores('approved')
       .then((res) => {
         const initial = {};
@@ -33,15 +34,15 @@ export default function LiveMonitor() {
             transcripts: s.isRecording
               ? [
                   {
-                    text: 'Active live stream connected. Listening for customer dialogues in real time...',
+                    text: 'Live audio channel established. Transcribing in English in real time...',
                     speaker: 'R',
-                    time: 'Just now',
+                    time: 'Active',
                     language: 'en',
                   },
                 ]
               : [
                   {
-                    text: 'Session ended. Standby for next conversation or computer startup.',
+                    text: 'Session ended. Workstation audio on standby.',
                     speaker: 'R',
                     time: 'Standby',
                     language: 'en',
@@ -59,12 +60,11 @@ export default function LiveMonitor() {
 
     const socket = getSocket();
 
-    // Join Admin Monitor Room
+    // Join Admin Monitor Room (Section 4.2.1)
     socket.emit('admin:join_monitor');
 
-    // Handle stream status change: LIVE (green) vs ENDED (red)
+    // Handle stream status change: LIVE (green) vs ENDED (red) (Section 4.2.3)
     const handleStatusChange = (data) => {
-      console.log('[LiveMonitor] Status change:', data);
       setActiveStreams((prev) => {
         const existing = prev[data.storeId] || {
           storeId: data.storeId,
@@ -84,7 +84,7 @@ export default function LiveMonitor() {
       });
     };
 
-    // Handle incoming synchronized word-for-word live transcription in English
+    // Handle incoming synchronized word-for-word live transcription in English (Section 4.2.4 & 3.4.2)
     const handleLiveWord = (data) => {
       setActiveStreams((prev) => {
         const existing = prev[data.storeId] || {
@@ -98,17 +98,21 @@ export default function LiveMonitor() {
         const lastItem = newTranscripts[newTranscripts.length - 1];
 
         if (lastItem && !lastItem.isFinal && lastItem.speaker === data.speaker) {
-          // Update interim text
-          lastItem.text = data.text;
-          lastItem.isFinal = data.isFinal;
+          newTranscripts[newTranscripts.length - 1] = {
+            ...lastItem,
+            text: data.text,
+            originalText: data.originalText,
+            isFinal: data.isFinal,
+            language: data.languageDetected,
+          };
         } else {
           newTranscripts.push({
             text: data.text,
             originalText: data.originalText,
             speaker: data.speaker || 'R',
+            isFinal: data.isFinal || false,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
             language: data.languageDetected || 'en',
-            isFinal: data.isFinal,
           });
         }
 
@@ -117,7 +121,7 @@ export default function LiveMonitor() {
           [data.storeId]: {
             ...existing,
             status: 'LIVE',
-            transcripts: newTranscripts.slice(-50), // keep latest 50
+            transcripts: newTranscripts,
             lastActive: new Date(),
           },
         };
@@ -133,200 +137,206 @@ export default function LiveMonitor() {
     };
   }, []);
 
-  // Auto-scroll transcript feed
   useEffect(() => {
     streamEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeStreams, selectedStoreId]);
 
   const streamList = Object.values(activeStreams);
-  const activeFocusStore = activeStreams[selectedStoreId] || streamList[0];
+  const currentStream = activeStreams[selectedStoreId] || streamList[0];
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+    <div className="space-y-6 animate-fadeIn pb-8">
+      {/* Header (Section 4.2) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#1f2737]">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-            Global Stream Live Monitor
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-live"></span>
-              Synchronized WebSocket
-            </span>
+          <h1 className="text-xl font-bold text-white tracking-tight">
+            Live Conversation Monitor
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Section 4.2: Real-time word-for-word English transcription stream and instant LIVE / ENDED status badge telemetry.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Real-time audio stream monitoring and synchronized bilingual transcription across retail stores.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 font-mono">
-            <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Active Streams: {streamList.filter((s) => s.status === 'LIVE').length} Live</span>
-          </div>
+        <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#141a24] border border-[#202938]">
+            <Radio className="w-3.5 h-3.5 text-blue-400" />
+            <span>Active Channels: {streamList.filter((s) => s.status === 'LIVE').length}</span>
+          </span>
         </div>
       </div>
 
-      {/* Grid of Stores Stream Listener Cards (Section 4.2.1 & 4.2.3) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {streamList.map((st) => {
-          const isLive = st.status === 'LIVE';
-          const isSelected = selectedStoreId === st.storeId;
-
-          return (
-            <div
-              key={st.storeId}
-              onClick={() => setSelectedStoreId(st.storeId)}
-              className={`p-4 rounded-2xl cursor-pointer transition-all border ${
-                isSelected
-                  ? 'bg-slate-900 border-sky-500/60 shadow-lg shadow-sky-500/10 ring-1 ring-sky-500/40'
-                  : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold text-sky-400">{st.storeId}</span>
-                {/* Section 4.2.3: LIVE vs ENDED Badge */}
-                {isLive ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shadow-emerald-500/20">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-live"></span>
-                    LIVE
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500/20 text-rose-400 border border-rose-500/40">
-                    <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-                    ENDED
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-3">
-                <div className="font-extrabold text-sm text-white truncate">{st.name}</div>
-                <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                  <Store className="w-3 h-3 text-sky-400" />
-                  <span className="truncate">{st.location}</span>
-                </div>
-              </div>
-
-              {/* Hardware Mic and VU animation */}
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5 text-slate-400 truncate max-w-[150px]">
-                  <Mic className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
-                  <span className="truncate text-[11px]">{st.activeMic || 'Microphone Active'}</span>
-                </div>
-
-                {isLive && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="w-1 h-3 bg-emerald-400 rounded-full animate-bounce"></span>
-                    <span className="w-1 h-5 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.1s]"></span>
-                    <span className="w-1 h-2 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                    <span className="w-1 h-4 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.3s]"></span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Main Focus Live Monitor Card with Synchronized Word-for-Word Transcript (Section 4.2.4) */}
-      {activeFocusStore && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-          {/* Header Bar */}
-          <div className="p-5 border-b border-slate-800 bg-slate-950/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-black text-white">{activeFocusStore.name}</h2>
-                {activeFocusStore.status === 'LIVE' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shadow-emerald-500/30">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse-live"></span>
-                    STREAMING LIVE
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase bg-rose-500/20 text-rose-400 border border-rose-500/40">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
-                    SESSION ENDED
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                <span>{activeFocusStore.location}</span>
-                <span>&bull;</span>
-                <span className="font-mono text-sky-400">{activeFocusStore.storeId}</span>
-                <span>&bull;</span>
-                <span>{activeFocusStore.activeMic}</span>
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center gap-1.5">
-                <Globe className="w-3 h-3" />
-                <span>Bilingual Real-Time Translation &rarr; English</span>
-              </span>
-            </div>
+      {/* Main Grid: Stream Selector Cards (Left) & Active Real-Time Stream (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left Column (4 Cols): Stream List (Section 4.2.2 & 4.2.3) */}
+        <div className="lg:col-span-4 space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              Store Terminals
+            </span>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {streamList.length} Registered
+            </span>
           </div>
 
-          {/* Transcript Feed (Word-for-Word Real Time English Stream) */}
-          <div className="p-6 h-96 overflow-y-auto space-y-3 bg-slate-950/40">
-            {(!activeFocusStore.transcripts || activeFocusStore.transcripts.length === 0) ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs">
-                <Activity className="w-8 h-8 mb-2 opacity-50 animate-pulse" />
-                <span>Waiting for speech input from retail microphone...</span>
+          <div className="space-y-2.5 max-h-[640px] overflow-y-auto pr-1">
+            {streamList.length === 0 ? (
+              <div className="pro-card p-6 text-center text-xs text-slate-400">
+                No stores registered yet. Please approve a store terminal.
               </div>
             ) : (
-              activeFocusStore.transcripts.map((t, idx) => {
-                const isRep = t.speaker === 'R';
+              streamList.map((st) => {
+                const isSelected = selectedStoreId === st.storeId;
+                const isLive = st.status === 'LIVE';
+
                 return (
                   <div
-                    key={idx}
-                    className={`flex flex-col ${isRep ? 'items-start' : 'items-end'}`}
+                    key={st.storeId}
+                    onClick={() => setSelectedStoreId(st.storeId)}
+                    className={`pro-card p-3.5 cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-blue-500/50 bg-[#16202e] shadow-sm'
+                        : 'hover:border-[#2b374e]'
+                    }`}
                   >
-                    <div className="flex items-center gap-2 text-[10px] text-slate-500 mb-1 px-1">
-                      <span className="font-bold text-slate-400">
-                        {isRep ? 'Representative (R)' : 'Customer (C)'}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-xs text-white truncate">
+                          {st.name}
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                          {st.location} &bull; <span className="font-mono">{st.storeId}</span>
+                        </div>
+                      </div>
+
+                      {/* Section 4.2.3: Green LIVE vs Red ENDED Status Badge */}
+                      <span
+                        className={`pro-badge ${
+                          isLive
+                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                            isLive ? 'bg-emerald-400' : 'bg-rose-400'
+                          }`}
+                        ></span>
+                        {isLive ? 'LIVE' : 'ENDED'}
                       </span>
-                      <span>&bull;</span>
-                      <span>{t.time}</span>
-                      {t.originalText && t.originalText !== t.text && (
-                        <span className="text-amber-400 font-mono text-[9px] bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
-                          Translated from Spanish
-                        </span>
-                      )}
                     </div>
 
-                    <div
-                      className={`max-w-xl p-3.5 rounded-2xl text-xs font-medium leading-relaxed shadow-sm ${
-                        isRep
-                          ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-slate-700/60'
-                          : 'bg-sky-600 text-white rounded-tr-sm shadow-sky-600/20'
-                      }`}
-                    >
-                      {t.text}
+                    <div className="mt-2.5 pt-2 border-t border-[#1f2737] flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                      <span className="flex items-center gap-1 truncate max-w-[170px]">
+                        <Mic className="w-3 h-3 text-slate-400" />
+                        <span className="truncate">{st.activeMic}</span>
+                      </span>
+                      <span>{st.transcripts?.length || 0} Utterances</span>
                     </div>
                   </div>
                 );
               })
             )}
-            <div ref={streamEndRef} />
-          </div>
-
-          {/* Real-time Subtitle Ticker Bar */}
-          <div className="p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-3 text-slate-300 truncate">
-              <span className="flex-shrink-0 px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 font-mono font-bold text-[10px]">
-                LIVE WORDS
-              </span>
-              <span className="italic truncate text-slate-300">
-                {activeFocusStore.transcripts?.[activeFocusStore.transcripts.length - 1]?.text ||
-                  'Audio channel synchronized with Deepgram Nova-2 engine.'}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono flex-shrink-0 ml-4">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span>Ultra-low Latency: &lt;120ms</span>
-            </div>
           </div>
         </div>
-      )}
+
+        {/* Right Column (8 Cols): Synchronized Real-Time Word Stream (Section 4.2.4 & 3.4) */}
+        <div className="lg:col-span-8 pro-card p-5 flex flex-col justify-between h-[640px]">
+          {currentStream ? (
+            <>
+              {/* Active Stream Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-[#1f2737]">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-sm font-bold text-white tracking-tight">
+                      {currentStream.name}
+                    </h2>
+                    <span
+                      className={`pro-badge ${
+                        currentStream.status === 'LIVE'
+                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                          currentStream.status === 'LIVE' ? 'bg-emerald-400' : 'bg-rose-400'
+                        }`}
+                      ></span>
+                      {currentStream.status === 'LIVE' ? 'ACTIVE STREAM' : 'RECORDING ENDED'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    {currentStream.location} &bull; Workstation ID: {currentStream.storeId} &bull; Output Language: <span className="text-blue-300 font-medium">English (Real-time Translation)</span>
+                  </div>
+                </div>
+
+                <div className="text-[11px] font-mono text-slate-400 px-2 py-1 rounded bg-[#0f141d] border border-[#1f2737]">
+                  {currentStream.activeMic}
+                </div>
+              </div>
+
+              {/* Synchronized Word-for-Word Transcription Display (Section 4.2.4 & 3.4) */}
+              <div className="flex-1 overflow-y-auto my-3 space-y-3.5 pr-2">
+                {(currentStream.transcripts || []).length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs">
+                    <Radio className="w-8 h-8 text-slate-500 mb-2 opacity-60" />
+                    <span>Awaiting incoming audio dialogues from store workstation...</span>
+                  </div>
+                ) : (
+                  currentStream.transcripts.map((item, idx) => {
+                    const isRep = item.speaker === 'R';
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex flex-col ${isRep ? 'items-start' : 'items-end'}`}
+                      >
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1 px-1">
+                          <span className="font-semibold text-slate-300">
+                            {isRep ? 'Sales Associate (R)' : 'Customer (C)'}
+                          </span>
+                          <span>&bull;</span>
+                          <span className="font-mono">{item.time || 'Live'}</span>
+                          {item.language === 'es' && (
+                            <span className="text-amber-400 text-[10px] font-mono">
+                              (Translated from Spanish)
+                            </span>
+                          )}
+                        </div>
+
+                        <div
+                          className={`max-w-lg p-3 rounded-lg text-xs leading-relaxed ${
+                            isRep
+                              ? 'bg-[#18212e] text-slate-100 border border-[#243144]'
+                              : 'bg-blue-600 text-white shadow-sm'
+                          }`}
+                        >
+                          {item.text}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={streamEndRef} />
+              </div>
+
+              {/* Active Stream Footer Status */}
+              <div className="pt-3 border-t border-[#1f2737] flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span>Bilingual Dual-Language Detection (EN + ES) Active</span>
+                </div>
+                <span className="text-[11px] font-mono text-slate-400">
+                  Sub-second low latency WebSocket synchronization
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+              Select a store from the left panel to begin monitoring.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

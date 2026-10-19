@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
   MessageSquare,
-  Sparkles,
-  AlertTriangle,
   TrendingUp,
   Download,
-  AlertCircle,
-  ArrowUpRight,
-  ShieldAlert,
+  AlertTriangle,
   ShoppingBag,
+  CheckCircle2,
+  Calendar,
+  Layers,
+  ArrowRight,
+  Info,
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -40,20 +41,21 @@ export default function Overview() {
   };
 
   const chartData = data?.activityChartData || [];
-  const maxDayTotal = Math.max(...chartData.map((d) => d.total || 0), 5);
+  const maxDayTotal = Math.max(...chartData.map((d) => d.total || 0), 6);
 
   const categoryBreakdown = data?.categoryBreakdown || [
     { category: 'Charger', percentage: 45, count: 5 },
     { category: 'Phone models', percentage: 30, count: 3 },
     { category: 'Protective Case', percentage: 15, count: 2 },
     { category: 'Warranty', percentage: 10, count: 1 },
+    { category: 'Other', percentage: 5, count: 1 },
   ];
 
   const insights = data?.highLevelInsights || {
     reviewRequiredCount: 2,
     topMissedProduct: 'Charger',
     topMissedPercentage: 45,
-    recommendation: 'Mandate attaching a 30W charging adapter to every new phone checkout to capture immediate high-margin revenue.',
+    recommendation: 'Ensure sales associates proactively confirm charging block compatibility with each smartphone checkout to capture high-margin accessory revenue.',
   };
 
   const handleDownloadPdf = () => {
@@ -63,261 +65,232 @@ export default function Overview() {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn pb-8">
       {/* Header with Title and Download PDF Button (Section 4.3.4) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#1f2737]">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-            StoreAI Intelligence Dashboard
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-              Overview
-            </span>
+          <h1 className="text-xl font-bold text-white tracking-tight">
+            Sales & Conversation Overview
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time conversational telemetry, missed sales opportunity tracking, and speech intelligence.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Real-time customer interaction telemetry, sales attachment tracking, and store analytics.
           </p>
         </div>
 
         <button
           onClick={handleDownloadPdf}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white font-bold text-xs shadow-lg shadow-sky-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-sm transition-colors cursor-pointer"
         >
-          <Download className="w-4 h-4" />
-          <span>Download PDF Report</span>
+          <Download className="w-3.5 h-3.5" />
+          <span>Export Summary (PDF)</span>
         </button>
       </div>
 
       {/* 4 Top KPI Cards (Section 4.3.1) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Conversations */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all shadow-md group">
+        <div className="pro-card p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-medium text-slate-400">
               Total Conversations
             </span>
-            <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 group-hover:scale-110 transition-transform">
-              <MessageSquare className="w-5 h-5" />
+            <div className="p-2 rounded-md bg-[#18202d] text-slate-300 border border-[#242f42]">
+              <MessageSquare className="w-4 h-4 text-blue-400" />
             </div>
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-white">{kpis.totalConversations}</span>
-            <span className="text-xs text-slate-400">interactions</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>100% microphone capture</span>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-white font-mono">
+              {kpis.totalConversations}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-1">
+              Customer interactions captured
+            </div>
           </div>
         </div>
 
         {/* Card 2: Analyzed Conversations */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all shadow-md group">
+        <div className="pro-card p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Analyzed Conversations
+            <span className="text-xs font-medium text-slate-400">
+              Evaluated Interactions
             </span>
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform">
-              <Sparkles className="w-5 h-5" />
+            <div className="p-2 rounded-md bg-[#18202d] text-slate-300 border border-[#242f42]">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-white">{kpis.analyzedConversations}</span>
-            <span className="text-xs text-indigo-400 font-semibold">
-              {kpis.totalConversations > 0
-                ? `${Math.round((kpis.analyzedConversations / kpis.totalConversations) * 100)}% analyzed`
-                : '0%'}
-            </span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
-            <span>Deepgram Nova-2 + AI Engine</span>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-white font-mono">
+              {kpis.analyzedConversations}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-1">
+              Fully processed by intelligence model
+            </div>
           </div>
         </div>
 
         {/* Card 3: Missed Opportunities */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-rose-500/40 transition-all shadow-md group">
+        <div className="pro-card p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-medium text-slate-400">
               Missed Opportunities
             </span>
-            <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 group-hover:scale-110 transition-transform">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="p-2 rounded-md bg-[#18202d] text-slate-300 border border-[#242f42]">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
             </div>
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-rose-400">{kpis.missedOpportunities}</span>
-            <span className="text-xs text-rose-300 font-semibold">sales lost</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[11px] text-rose-400/90 font-medium">
-            <span>High priority coaching required</span>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-white font-mono">
+              {kpis.missedOpportunities}
+            </div>
+            <div className="text-[11px] text-amber-400/90 font-medium mt-1">
+              Unrealized accessory & warranty pitches
+            </div>
           </div>
         </div>
 
         {/* Card 4: Sales Opportunities */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-emerald-500/40 transition-all shadow-md group">
+        <div className="pro-card p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Sales Opportunities
+            <span className="text-xs font-medium text-slate-400">
+              Closed Sales Transactions
             </span>
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-5 h-5" />
+            <div className="p-2 rounded-md bg-[#18202d] text-slate-300 border border-[#242f42]">
+              <ShoppingBag className="w-4 h-4 text-blue-400" />
             </div>
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-emerald-400">{kpis.salesOpportunities}</span>
-            <span className="text-xs text-emerald-300 font-semibold">closed & pitched</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-            <span>Revenue growth potential</span>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-white font-mono">
+              {kpis.salesOpportunities}
+            </div>
+            <div className="text-[11px] text-emerald-400/90 font-medium mt-1">
+              Completed purchases recorded
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 7-Day Activity Graph & AI Insights (Section 4.3.2 & 4.3.3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Graph: 7 Days Conversation Activity (2 Columns) */}
-        <div className="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-md">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-base font-bold text-white tracking-tight">
-                7-Day Conversation Activity
-              </h2>
-              <p className="text-xs text-slate-400">
-                Daily volume of customer audio analyzed across retail stores
-              </p>
+      {/* Middle Grid: 7-Day Activity Graph & Missed by Category */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Section 4.3.2: 7-Day Activity Graph (7 Cols) */}
+        <div className="lg:col-span-7 pro-card p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#1f2737]">
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  Conversation Volume (Last 7 Days)
+                </h2>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Daily recorded interactions, evaluated calls, and opportunity patterns.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-blue-500"></span>
+                  Total
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-amber-500"></span>
+                  Missed
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-xs font-medium">
-              <span className="flex items-center gap-1.5 text-sky-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
-                Total
-              </span>
-              <span className="flex items-center gap-1.5 text-indigo-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
-                Analyzed
-              </span>
+
+            {/* Bar Chart Visualization */}
+            <div className="h-48 flex items-end justify-between gap-3 pt-6 pb-2 px-2">
+              {chartData.map((day, idx) => {
+                const totalHeight = Math.max(12, Math.round((day.total / maxDayTotal) * 150));
+                const missedHeight = Math.max(4, Math.round((day.missed / maxDayTotal) * 150));
+
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
+                    <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                      {/* Total Bar */}
+                      <div
+                        className="w-full max-w-[28px] bg-blue-600/80 hover:bg-blue-500 rounded-t-sm transition-all relative flex flex-col justify-end"
+                        style={{ height: `${totalHeight}px` }}
+                      >
+                        <span className="opacity-0 group-hover:opacity-100 absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-mono font-semibold bg-[#0f141d] px-1.5 py-0.5 rounded border border-[#242f42] text-white pointer-events-none transition-opacity">
+                          {day.total}
+                        </span>
+                      </div>
+                      {/* Missed Bar */}
+                      {day.missed > 0 && (
+                        <div
+                          className="w-full max-w-[14px] bg-amber-500/80 hover:bg-amber-400 rounded-t-sm transition-all relative"
+                          style={{ height: `${missedHeight}px` }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-200">
+                      {day.day}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Bar / Column Visualizer */}
-          <div className="h-56 flex items-end justify-between gap-4 pt-8 px-2 border-b border-slate-800">
-            {chartData.map((d, idx) => {
-              const heightTotal = Math.max(14, (d.total / maxDayTotal) * 160);
-              const heightAnalyzed = Math.max(8, (d.analyzed / maxDayTotal) * 160);
-
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
-                  <div className="text-[10px] font-mono text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {d.total} conv
-                  </div>
-                  <div className="w-full max-w-[42px] flex items-end justify-center gap-1.5 h-44">
-                    <div
-                      className="w-1/2 bg-gradient-to-t from-sky-600 to-sky-400 rounded-t-md transition-all duration-300 group-hover:brightness-125"
-                      style={{ height: `${heightTotal}px` }}
-                      title={`Total: ${d.total}`}
-                    />
-                    <div
-                      className="w-1/2 bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-md transition-all duration-300 group-hover:brightness-125"
-                      style={{ height: `${heightAnalyzed}px` }}
-                      title={`Analyzed: ${d.analyzed}`}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-400 group-hover:text-white transition-colors">
-                    {d.day}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="pt-3 border-t border-[#1f2737] flex items-center justify-between text-xs text-slate-400">
+            <span>Aggregated across active physical store lanes</span>
+            <button
+              onClick={() => navigate('/recordings')}
+              className="text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 text-[11px]"
+            >
+              <span>View All Records</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
           </div>
         </div>
 
-        {/* AI Insights & Manager Review Box */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
-              <Sparkles className="w-4 h-4" />
-              <span>Section 4.3 AI Insights</span>
+        {/* Section 4.3.3: Missed by Category Breakdown (5 Cols) */}
+        <div className="lg:col-span-5 pro-card p-5 space-y-4">
+          <div className="pb-2 border-b border-[#1f2737]">
+            <h2 className="text-sm font-semibold text-white">
+              Missed Revenue by Category
+            </h2>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              High-value attachment products missed during sales consultations.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {categoryBreakdown.map((cat, idx) => (
+              <div key={idx} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-200">{cat.category}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-slate-400 text-[11px]">{cat.count} missed</span>
+                    <span className="font-mono font-semibold text-slate-100 text-[11px] w-8 text-right">
+                      {cat.percentage}%
+                    </span>
+                  </div>
+                </div>
+                <div className="h-1.5 w-full bg-[#18202d] rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      idx === 0 ? 'bg-amber-500' : idx === 1 ? 'bg-blue-500' : 'bg-slate-500'
+                    }`}
+                    style={{ width: `${Math.max(5, cat.percentage)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Section 4.3.3: High-level AI Insights Box */}
+          <div className="mt-4 p-3.5 rounded-lg bg-[#161f2c] border border-[#243046] space-y-1.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-blue-300">
+              <Info className="w-3.5 h-3.5 text-blue-400" />
+              <span>Manager Review Recommendation</span>
             </div>
-            <h3 className="text-lg font-extrabold text-white">Manager Action Required</h3>
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+            <p className="text-xs text-slate-300 leading-relaxed font-normal">
               {insights.recommendation}
             </p>
-
-            <div className="mt-5 space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                <div className="flex items-center gap-2.5">
-                  <ShieldAlert className="w-4 h-4 text-rose-400" />
-                  <span className="text-xs font-semibold text-rose-200">
-                    Review Required Interactions
-                  </span>
-                </div>
-                <span className="font-extrabold text-sm text-rose-400">
-                  {insights.reviewRequiredCount}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <div className="flex items-center gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-semibold text-amber-200">
-                    Top Missed Product
-                  </span>
-                </div>
-                <span className="font-extrabold text-sm text-amber-300">
-                  {insights.topMissedProduct} ({insights.topMissedPercentage}%)
-                </span>
-              </div>
+            <div className="pt-2 border-t border-[#243046]/80 flex items-center justify-between text-[11px] text-slate-400">
+              <span>{insights.reviewRequiredCount} conversations require shift review</span>
+              <span className="text-amber-400 font-medium">Top Missed: {insights.topMissedProduct}</span>
             </div>
           </div>
-
-          <button
-            onClick={() => navigate('/recordings')}
-            className="w-full mt-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition-colors"
-          >
-            Inspect In Recordings Library &rarr;
-          </button>
-        </div>
-      </div>
-
-      {/* Missed by Category Breakdown (Section 4.3.3) */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-md">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-base font-bold text-white tracking-tight">
-              Missed Opportunities by Category
-            </h2>
-            <p className="text-xs text-slate-400">
-              Breakdown of lost hardware and accessory revenue detected by audio analysis
-            </p>
-          </div>
-          <span className="text-xs font-mono text-slate-400">
-            Charger &bull; Phone models &bull; Cases &bull; Warranty
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {categoryBreakdown.map((cat, i) => (
-            <div
-              key={i}
-              className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition-all"
-            >
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-bold text-slate-200">{cat.category}</span>
-                <span className="font-mono text-sky-400 font-bold">{cat.percentage}%</span>
-              </div>
-              <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-sky-500 to-indigo-500 rounded-full"
-                  style={{ width: `${Math.min(100, cat.percentage)}%` }}
-                />
-              </div>
-              <div className="mt-2 text-[11px] text-slate-400 flex justify-between">
-                <span>{cat.count} instances flagged</span>
-                {cat.estimatedLoss > 0 && (
-                  <span className="text-rose-400 font-semibold font-mono">
-                    -${cat.estimatedLoss}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>

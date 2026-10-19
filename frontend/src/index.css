@@ -3,54 +3,75 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-bg-main: #0b0f17;
+    --color-surface-card: #141a24;
+    --color-border-card: #202938;
+    --color-accent-blue: #2563eb;
+  }
+
   body {
-    @apply bg-slate-950 text-slate-100 font-sans;
+    background-color: #0b0f17;
+    color: #e2e8f0;
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Custom Scrollbar */
+/* Polished Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: #0f141d;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
-  border-radius: 4px;
+  background: #232c3d;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 1);
+  background: #344259;
 }
 
-/* Glassmorphism utility */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Enterprise Card Utilities */
+.pro-card {
+  background-color: #131923;
+  border: 1px solid #1f2737;
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25), 0 1px 2px -1px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.glass-card {
-  background: rgba(30, 41, 59, 0.6);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.pro-card:hover {
+  border-color: #2b364c;
 }
 
-/* Pulsing LIVE animations */
-@keyframes pulse-live {
+.pro-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.1875rem 0.5625rem;
+  border-radius: 9999px;
+  letter-spacing: 0.01em;
+}
+
+/* Subtle Live Indicator */
+@keyframes subtle-pulse {
   0%, 100% {
     opacity: 1;
     transform: scale(1);
   }
   50% {
-    opacity: 0.4;
-    transform: scale(1.15);
+    opacity: 0.5;
+    transform: scale(1.1);
   }
 }
 
-.animate-pulse-live {
-  animation: pulse-live 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.live-pulse {
+  animation: subtle-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Print Styles for PDF Export */

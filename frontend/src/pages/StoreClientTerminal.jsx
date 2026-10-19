@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Send,
   Sliders,
+  AlertCircle,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
@@ -39,7 +40,7 @@ export default function StoreClientTerminal() {
   // Bilingual Real-time English Transcript Stream (Section 3.4)
   const [transcripts, setTranscripts] = useState([
     {
-      text: 'Microphone initialized. Ready to capture customer & representative speech.',
+      text: 'Microphone initialized. Ready to transcribe customer and associate dialogue.',
       speaker: 'R',
       time: '00:00',
       language: 'en',
@@ -57,7 +58,6 @@ export default function StoreClientTerminal() {
   const enumerateMicrophones = async () => {
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-        // Request temporary mic permission to label devices
         await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioInputs = devices.filter((d) => d.kind === 'audioinput');
@@ -68,11 +68,10 @@ export default function StoreClientTerminal() {
       }
     } catch (err) {
       console.warn('Microphone enumeration notice:', err.message);
-      // Fallback virtual mics
       setMics([
         { deviceId: 'default', label: 'USB Omnidirectional Retail Mic (Realtek High Definition Audio)' },
         { deviceId: 'mic-2', label: 'Jabra Speak 710 Conference Mic' },
-        { deviceId: 'mic-3', label: 'Internal Laptop Microphone Array' },
+        { deviceId: 'mic-3', label: 'Internal Workstation Microphone Array' },
       ]);
     }
   };
@@ -102,7 +101,7 @@ export default function StoreClientTerminal() {
       name: storeName,
       location: storeLocation,
       systemInfo: {
-        hostname: 'RETAIL-POS-WINDOWS-CLIENT',
+        hostname: 'RETAIL-POS-WORKSTATION',
         activeMic: mics.find((m) => m.deviceId === selectedMicId)?.label || 'Omnidirectional Retail Mic',
       },
     });
@@ -247,7 +246,7 @@ export default function StoreClientTerminal() {
     }
   };
 
-  // Simulate Bilingual Speech Input for Instant Live Testing (Section 3.4)
+  // Push Speech Utterance (Section 3.4)
   const pushSpeechUtterance = (text, speaker = 'C', lang = 'en', original = null) => {
     if (!isRecording) {
       alert('Please start recording first!');
@@ -267,7 +266,6 @@ export default function StoreClientTerminal() {
 
     setTranscripts((prev) => [...prev, newUtt]);
 
-    // Send to Backend & Live Monitor via Socket.IO
     socket.emit('stream:transcript', {
       storeId,
       storeName,
@@ -275,8 +273,8 @@ export default function StoreClientTerminal() {
       text,
       originalText: original || text,
       speaker,
-      language: lang,
       isFinal: true,
+      language: lang,
       timestamp: Date.now(),
     });
   };
@@ -290,311 +288,267 @@ export default function StoreClientTerminal() {
   return (
     <div className="space-y-6 animate-fadeIn pb-12 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#1f2737]">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-white tracking-tight">
-              Windows Desktop Client Terminal (.exe)
-            </h1>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
-              Component 1
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Retail store PC audio capture agent with multi-mic enumeration, admin approval gate, and bilingual Deepgram speech detection.
+          <h1 className="text-xl font-bold text-white tracking-tight">
+            Store Workstation Terminal
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Retail store audio capture client &bull; Multi-mic hardware detection &bull; Automatic sync on boot & shutdown
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
-            Client v1.2.9 (.exe)
-          </span>
+          {approvalStatus === 'approved' ? (
+            <span className="pro-badge bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              Terminal Authorized
+            </span>
+          ) : (
+            <span className="pro-badge bg-amber-500/15 text-amber-300 border border-amber-500/30">
+              <Clock className="w-3 h-3 mr-1" />
+              Pending Admin Approval
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Section 3.1: Approval Gate Banner if Pending */}
+      {/* Section 3.1: Approval Gate Warning Banner */}
       {approvalStatus === 'pending' && (
-        <div className="p-6 rounded-2xl bg-amber-950/30 border-2 border-amber-500/50 shadow-xl flex items-start gap-4">
-          <Clock className="w-8 h-8 text-amber-400 flex-shrink-0 animate-pulse" />
-          <div className="space-y-1.5">
-            <h3 className="text-sm font-extrabold uppercase tracking-wider text-amber-300">
-              Section 3.1 Approval Gate: Awaiting Central Admin Approval
-            </h3>
-            <p className="text-xs text-amber-200/90 leading-relaxed">
-              This retail store PC is currently registered but blocked from recording. Once the store admin clicks <strong>"Approve"</strong> in the <strong>Store Approvals</strong> module of the Web Portal, this terminal will automatically unlock and <strong>Auto-Start Recording</strong> in real-time.
+        <div className="p-4 rounded-lg bg-amber-950/30 border border-amber-800/50 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <div className="font-semibold text-amber-200">
+              Registration Under Admin Review (Approval Gate Active)
+            </div>
+            <p className="text-amber-300/80 mt-0.5 leading-relaxed">
+              Recording is safely blocked until an administrator approves this workstation from the Store Approvals portal. Once approved, recording will automatically commence.
             </p>
           </div>
         </div>
       )}
 
       {/* Main Terminal Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (5 cols): Store Settings & Mic Controls */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* Hardware Microphone Detection (Section 3.3) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h2 className="text-sm font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-                <Mic className="w-4 h-4 text-sky-400" />
-                <span>Section 3.3 Hardware Mic Detection</span>
-              </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left Column (5 Cols): Hardware Detection & Controls */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Section 3.3: Hardware / Microphone Detection */}
+          <div className="pro-card p-4 space-y-4">
+            <div className="flex items-center justify-between pb-2.5 border-b border-[#1f2737]">
+              <div className="text-xs font-bold text-white uppercase tracking-wider">
+                Microphone Hardware Detection
+              </div>
               <button
                 onClick={enumerateMicrophones}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded"
-                title="Rescan Mics"
+                className="text-[11px] text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 cursor-pointer"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw className="w-3 h-3" />
+                <span>Re-scan</span>
               </button>
             </div>
 
             {/* Mic Selection Dropdown (Section 3.3.2) */}
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                Connected Microphones ({mics.length} detected)
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-slate-300">
+                Active Audio Input Device:
               </label>
               <select
                 value={selectedMicId}
                 onChange={(e) => setSelectedMicId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer"
+                className="w-full bg-[#0e131b] border border-[#1f2737] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
               >
                 {mics.length === 0 ? (
-                  <option value="">No hardware mic found</option>
+                  <option value="">Default Microphone Array</option>
                 ) : (
-                  mics.map((m, i) => (
-                    <option key={m.deviceId || i} value={m.deviceId}>
-                      {m.label || `Microphone Input ${i + 1}`}
+                  mics.map((m, idx) => (
+                    <option key={m.deviceId || idx} value={m.deviceId}>
+                      {m.label || `Connected Microphone ${idx + 1}`}
                     </option>
                   ))
                 )}
               </select>
+              <div className="text-[10px] text-slate-400 font-mono">
+                Detected: {mics.length} connected audio capture device(s)
+              </div>
             </div>
 
-            {/* Active Audio Waveform Indicator (Section 3.3.3) */}
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      micActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'
-                    }`}
-                  />
-                  {micActive ? 'Microphone is active' : 'Microphone standby'}
+            {/* Active Audio Indicator & Waveform Visualizer (Section 3.3.3) */}
+            <div className="p-3.5 rounded-lg bg-[#0e131b] border border-[#1e2636] space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${isRecording ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
+                  <span>{isRecording ? 'Microphone is active' : 'Microphone is standby'}</span>
                 </span>
-                <span className="font-mono text-sky-400 font-bold text-sm">
+                <span className="text-base font-bold font-mono text-white tracking-wider">
                   {formatTime(timerSeconds)}
                 </span>
               </div>
 
-              {/* Dynamic waveform visualizer */}
-              <div className="h-8 bg-slate-900 rounded-lg flex items-center justify-center gap-1 px-3 overflow-hidden border border-slate-800">
+              {/* Dynamic Waveform Bars */}
+              <div className="h-10 bg-[#141a24] rounded-md px-3 flex items-center justify-between gap-1 overflow-hidden border border-[#1e2738]">
                 {Array.from({ length: 24 }).map((_, i) => {
-                  const h = isRecording
-                    ? Math.max(6, Math.min(26, (audioLevel / 5) * (1 + (i % 4) * 0.4)))
-                    : 4;
+                  const baseH = [10, 16, 26, 14, 22, 32, 18, 12, 28, 30, 16, 12][i % 12];
+                  const liveH = isRecording ? Math.min(36, Math.max(8, baseH + (audioLevel > 10 ? (i % 4) * 4 : 0))) : 4;
                   return (
                     <div
                       key={i}
-                      className={`w-1 rounded-full transition-all duration-75 ${
-                        isRecording ? 'bg-sky-400' : 'bg-slate-700'
+                      className={`w-1.5 rounded-full transition-all duration-100 ${
+                        isRecording ? 'bg-emerald-400' : 'bg-slate-700'
                       }`}
-                      style={{ height: `${h}px` }}
+                      style={{ height: `${liveH}px` }}
                     />
                   );
                 })}
               </div>
             </div>
 
-            {/* Section 3.2 Manual Override Controls */}
-            <div className="flex items-center gap-3 pt-2">
-              {!isRecording ? (
+            {/* Manual Override Controls (Section 3.2.4) */}
+            <div className="space-y-2 pt-1">
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Recording Controls
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   onClick={startRecordingSession}
-                  disabled={approvalStatus !== 'approved'}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-40"
+                  disabled={isRecording || approvalStatus !== 'approved'}
+                  className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
                 >
-                  <Play className="w-4 h-4" />
-                  <span>Start Recording (Manual)</span>
+                  <Play className="w-3.5 h-3.5" />
+                  <span>Start Recording</span>
                 </button>
-              ) : (
+
                 <button
                   onClick={stopRecordingSession}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 transition-all"
+                  disabled={!isRecording}
+                  className="py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
                 >
-                  <Square className="w-4 h-4 fill-white" />
-                  <span>Stop Recording (Manual)</span>
+                  <Square className="w-3.5 h-3.5" />
+                  <span>Stop Recording</span>
                 </button>
-              )}
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Recording auto-starts on system boot and auto-saves to server on PC shutdown.
+              </p>
             </div>
           </div>
 
-          {/* Store Registration Card (Section 3.1) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
-            <h2 className="text-sm font-extrabold text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-3">
-              <Shield className="w-4 h-4 text-purple-400" />
-              <span>Section 3.1 Store Registration</span>
-            </h2>
-
-            <form onSubmit={handleRegister} className="space-y-3 text-xs">
+          {/* Registration Form / Workstation Info (Section 3.1) */}
+          <div className="pro-card p-4 space-y-3">
+            <div className="text-xs font-bold text-white uppercase tracking-wider pb-2 border-b border-[#1f2737]">
+              Workstation Credentials
+            </div>
+            <form onSubmit={handleRegister} className="space-y-2.5">
               <div>
-                <label className="text-slate-400 font-semibold block mb-1">Store Name</label>
+                <label className="text-[11px] text-slate-400 block mb-1">Store Name</label>
                 <input
                   type="text"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500 font-medium"
+                  className="w-full bg-[#0e131b] border border-[#1f2737] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="text-slate-400 font-semibold block mb-1">Location / Mall</label>
+                <label className="text-[11px] text-slate-400 block mb-1">Store Location</label>
                 <input
                   type="text"
                   value={storeLocation}
                   onChange={(e) => setStoreLocation(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500 font-medium"
+                  className="w-full bg-[#0e131b] border border-[#1f2737] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
-
-              <div>
-                <label className="text-slate-400 font-semibold block mb-1">Store ID</label>
-                <input
-                  type="text"
-                  value={storeId}
-                  onChange={(e) => setStoreId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 font-mono focus:outline-none focus:border-purple-500"
-                />
-              </div>
-
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/20 transition-all"
+                className="w-full py-1.5 rounded-lg bg-[#18202d] hover:bg-[#222c3e] text-slate-200 border border-[#243044] text-xs font-medium transition-colors cursor-pointer"
               >
-                Register / Update Store Client
+                Update Terminal Registration
               </button>
             </form>
           </div>
         </div>
 
-        {/* Right Column (7 cols): Live Conversation Box & Bilingual English Output (Section 3.4) */}
-        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+        {/* Right Column (7 Cols): Live Conversation Box & Real-Time English Transcription (Section 3.4) */}
+        <div className="lg:col-span-7 pro-card p-4 flex flex-col justify-between h-[620px]">
           <div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-sky-400" />
-                <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">
-                  Live Conversation Box & Real-Time English Output
+            <div className="flex items-center justify-between pb-2.5 border-b border-[#1f2737]">
+              <div>
+                <h2 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Live Conversation Box
                 </h2>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Real-time English transcription output &bull; Dual-language speech detection (EN + ES)
+                </p>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 font-bold border border-sky-500/20">
-                Section 3.4 Bilingual
+              <span className="pro-badge bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                Always English Output
               </span>
             </div>
 
-            <p className="text-xs text-slate-400 mb-4">
-              Section 3.4.2: English and Spanish audio are detected. Output always appears in English in real-time.
-            </p>
-
-            {/* Conversation Feed */}
-            <div className="space-y-3 h-80 overflow-y-auto pr-2 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+            {/* Transcript Stream Display */}
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 my-3">
               {transcripts.map((t, idx) => {
                 const isRep = t.speaker === 'R';
                 return (
-                  <div
-                    key={idx}
-                    className={`flex flex-col ${isRep ? 'items-start' : 'items-end'}`}
-                  >
-                    <div className="flex items-center gap-2 text-[10px] text-slate-500 mb-0.5 px-1">
-                      <span className="font-bold text-slate-400">
-                        {isRep ? 'Representative (R)' : 'Customer (C)'}
+                  <div key={idx} className={`flex flex-col ${isRep ? 'items-start' : 'items-end'}`}>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-0.5 px-1">
+                      <span className="font-semibold text-slate-300">
+                        {isRep ? 'Sales Associate (R)' : 'Customer (C)'}
                       </span>
                       <span>&bull;</span>
-                      <span>{t.time}</span>
+                      <span className="font-mono">{t.time}</span>
+                      {t.language === 'es' && (
+                        <span className="text-amber-400 text-[10px] font-mono">(Translated from Spanish)</span>
+                      )}
                     </div>
-
                     <div
-                      className={`max-w-md p-3 rounded-2xl text-xs font-medium leading-relaxed ${
+                      className={`max-w-md p-2.5 rounded-lg text-xs leading-relaxed ${
                         isRep
-                          ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-slate-700'
-                          : 'bg-sky-600 text-white rounded-tr-sm shadow-sky-600/20'
+                          ? 'bg-[#18202d] text-slate-100 border border-[#243044]'
+                          : 'bg-blue-600 text-white shadow-sm'
                       }`}
                     >
                       {t.text}
                     </div>
-
-                    {t.originalText && t.originalText !== t.text && (
-                      <div className="text-[10px] text-amber-400 font-mono mt-0.5 px-2">
-                        ES: "{t.originalText}"
-                      </div>
-                    )}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* Quick Bilingual Speech Testing Buttons (Section 3.4.1 & 3.4.2) */}
-          <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Simulate Live Speech Dialogue (Dual Language &rarr; Real Time English):
+          {/* Section 3.4: Dual Language Simulation & Real-time Speech Test Buttons */}
+          <div className="pt-3 border-t border-[#1f2737] space-y-2">
+            <div className="text-[11px] font-semibold text-slate-400">
+              Quick Test Utterances (English & Spanish Audio):
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 onClick={() =>
                   pushSpeechUtterance(
-                    'Good morning! How can I help you today with a new phone or plan?',
+                    'Good morning, welcome to our store! How can I help you today with a new phone?',
                     'R',
                     'en'
                   )
                 }
-                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-left text-slate-200 border border-slate-700 transition-colors"
+                disabled={!isRecording}
+                className="p-2 rounded-lg bg-[#0e131b] hover:bg-[#161e2a] text-left text-slate-200 border border-[#1e2636] transition-colors disabled:opacity-40 cursor-pointer text-[11px]"
               >
-                <div className="font-bold text-sky-400 text-[10px] uppercase">Representative (EN)</div>
-                <div className="truncate">"How can I help you today?"</div>
+                <div className="font-semibold text-white">English Greeting (R)</div>
+                <div className="text-slate-400 truncate">"Good morning, welcome to our store..."</div>
               </button>
 
               <button
                 onClick={() =>
                   pushSpeechUtterance(
-                    'Do you have chargers for iPhone 15?',
+                    'Hello, good morning, how much does this phone cost?',
                     'C',
                     'es',
-                    '¿Tienen cargadores para iPhone 15?'
+                    'Hola, buenos días, cuánto cuesta este teléfono?'
                   )
                 }
-                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-left text-slate-200 border border-slate-700 transition-colors"
+                disabled={!isRecording}
+                className="p-2 rounded-lg bg-[#0e131b] hover:bg-[#161e2a] text-left text-slate-200 border border-[#1e2636] transition-colors disabled:opacity-40 cursor-pointer text-[11px]"
               >
-                <div className="font-bold text-amber-400 text-[10px] uppercase">Customer (Spanish Audio)</div>
-                <div className="truncate">"¿Tienen cargadores para iPhone?"</div>
-              </button>
-
-              <button
-                onClick={() =>
-                  pushSpeechUtterance(
-                    'Yes, we have the 30W USB-C fast charger for $25.',
-                    'R',
-                    'en'
-                  )
-                }
-                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-left text-slate-200 border border-slate-700 transition-colors"
-              >
-                <div className="font-bold text-sky-400 text-[10px] uppercase">Representative (EN)</div>
-                <div className="truncate">"Yes, we have 30W charger for $25"</div>
-              </button>
-
-              <button
-                onClick={() =>
-                  pushSpeechUtterance(
-                    "Oh it is too expensive, I'll buy it online later.",
-                    'C',
-                    'es',
-                    'Ah está muy caro, lo compraré por internet después.'
-                  )
-                }
-                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-left text-slate-200 border border-slate-700 transition-colors"
-              >
-                <div className="font-bold text-rose-400 text-[10px] uppercase">Customer (Spanish Audio)</div>
-                <div className="truncate">"Está muy caro, compraré online"</div>
+                <div className="font-semibold text-amber-300">Spanish Inquiry (C) &rarr; English</div>
+                <div className="text-slate-400 truncate">"Hola, buenos días, cuánto cuesta..."</div>
               </button>
             </div>
           </div>
