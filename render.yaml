@@ -35,8 +35,6 @@ services:
     name: store-listener-frontend
     runtime: static
     rootDir: frontend
-    plan: free
-    region: oregon
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     autoDeploy: true

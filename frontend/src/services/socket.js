@@ -1,6 +1,10 @@
 import { io } from 'socket.io-client';
 
-const WS_URL = import.meta.env.VITE_WS_URL || window.location.origin;
+let rawWs = import.meta.env.VITE_WS_URL || window.location.origin;
+if (rawWs && !rawWs.startsWith('http') && !rawWs.startsWith('ws')) {
+  rawWs = `https://${rawWs}`;
+}
+const WS_URL = rawWs;
 
 let socketInstance = null;
 

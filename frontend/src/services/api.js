@@ -1,4 +1,8 @@
-const BASE_URL = import.meta.env.VITE_API_URL || '';
+let rawBase = import.meta.env.VITE_API_URL || '';
+if (rawBase && !rawBase.startsWith('http')) {
+  rawBase = `https://${rawBase}`;
+}
+const BASE_URL = rawBase;
 
 async function fetchJSON(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
