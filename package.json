@@ -1,0 +1,21 @@
+{
+  "name": "store-listener-monorepo",
+  "version": "1.0.0",
+  "description": "Store Listener AI Sales Monitoring System - MERN Stack Monorepo",
+  "scripts": {
+    "dev:backend": "npm --prefix Backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "start:backend": "npm --prefix Backend start",
+    "build:frontend": "npm --prefix frontend run build",
+    "seed": "npm --prefix Backend run seed"
+  },
+  "keywords": [
+    "store-listener",
+    "mern",
+    "deepgram",
+    "speech-to-text",
+    "sales-intelligence"
+  ],
+  "author": "Store Listener Team",
+  "license": "ISC"
+}

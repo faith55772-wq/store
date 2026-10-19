@@ -1,0 +1,57 @@
+services:
+  # ==========================================
+  # 1. Backend Web Service (Node.js + Express)
+  # ==========================================
+  - type: web
+    name: store-listener-backend
+    runtime: node
+    rootDir: Backend
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        value: mongodb+srv://infosoftdevzone_db_user:Qa8fsTr50BgtRhI2@cluster0.3fykibu.mongodb.net/store_listener?retryWrites=true&w=majority&appName=Cluster0
+      - key: DEEPGRAM_API_KEY
+        value: ed9ef2ddcabaed33bc705a6c31e381a05d2614f7
+      - key: JWT_SECRET
+        value: store_listener_super_secure_jwt_secret_key_2026_xyz
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: STORAGE_DIR
+        value: storage
+
+  # ==========================================
+  # 2. Frontend Static Site (React + Vite)
+  # ==========================================
+  - type: web
+    name: store-listener-frontend
+    runtime: static
+    rootDir: frontend
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: store-listener-backend
+          property: host
+      - key: VITE_WS_URL
+        fromService:
+          type: web
+          name: store-listener-backend
+          property: host
