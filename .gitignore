@@ -37,3 +37,8 @@ storage/audio/
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Desktop Agent & Windows Installers
+desktop-agent/
+*.exe
+*.blockmap

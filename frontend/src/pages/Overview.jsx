@@ -57,8 +57,9 @@ export default function Overview() {
   };
 
   const handleDownloadPdf = () => {
-    // Navigate to Daily Reports page or open print view
-    navigate('/reports');
+    const today = new Date().toISOString().split('T')[0];
+    const url = api.getPdfReportUrl(today, selectedStore);
+    window.open(url, '_blank');
   };
 
   return (

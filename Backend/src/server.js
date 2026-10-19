@@ -75,13 +75,24 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Routes
+// API Routes (supports both /api and /api/v1)
 app.use('/api/auth', authRoutes);
+app.use('/api/v1/auth', authRoutes);
+
 app.use('/api/stores', storeRoutes);
+app.use('/api/v1/stores', storeRoutes);
+
 app.use('/api/recordings', recordingRoutes);
+app.use('/api/v1/recordings', recordingRoutes);
+
 app.use('/api/reports', reportRoutes);
+app.use('/api/v1/reports', reportRoutes);
+
 app.use('/api/overview', overviewRoutes);
+app.use('/api/v1/overview', overviewRoutes);
+
 app.use('/api/deepgram', deepgramRoutes);
+app.use('/api/v1/deepgram', deepgramRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
