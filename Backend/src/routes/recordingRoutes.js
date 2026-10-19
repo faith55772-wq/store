@@ -82,6 +82,68 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Create or sync recording (Section 3.2.3: Safe stop & sync on shutdown/sleep)
+router.post('/', async (req, res) => {
+  try {
+    const {
+      storeId,
+      customerId,
+      representativeName,
+      fullTranscript,
+      speakerSegments,
+      durationSeconds,
+      status = 'completed',
+      audioUrl,
+      originalLanguage = 'en',
+    } = req.body;
+
+    if (!storeId) {
+      return res.status(400).json({ success: false, message: 'storeId is required' });
+    }
+
+    const store = await Store.findOne({ storeId });
+    const storeName = store ? store.name : 'Dallas Retail Store #104';
+    const location = store ? store.location : 'Dallas, TX';
+
+    const recordingId = req.body.recordingId || `REC-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+
+    // Auto-analyze conversation if transcript provided
+    const analysis = analyzeConversation(fullTranscript || '', speakerSegments || []);
+
+    const recording = await Recording.create({
+      recordingId,
+      storeId,
+      storeName,
+      location,
+      customerId: customerId || `CUST-${Math.floor(1000 + Math.random() * 9000)}`,
+      representativeName: representativeName || 'Alex Rivers',
+      startTime: req.body.startTime ? new Date(req.body.startTime) : new Date(Date.now() - (durationSeconds ? durationSeconds * 1000 : 35000)),
+      endTime: req.body.endTime ? new Date(req.body.endTime) : new Date(),
+      durationSeconds: parseInt(durationSeconds || 35, 10),
+      status,
+      audioUrl: audioUrl || '',
+      fullTranscript: fullTranscript || '',
+      originalLanguage,
+      translatedTranscriptEn: fullTranscript || '',
+      speakerSegments: analysis.speakerSegments && analysis.speakerSegments.length > 0 ? analysis.speakerSegments : (speakerSegments || []),
+      aiAnalysis: analysis,
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('recording:new_completed', recording);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Recording synchronized and analyzed successfully',
+      recording,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Get single recording detail view (Section 4.4)
 router.get('/:id', async (req, res) => {
   try {
@@ -126,11 +188,14 @@ router.post('/:id/analyze', async (req, res) => {
 
     await recording.save();
 
+    const analysisObj = recording.aiAnalysis.toObject ? recording.aiAnalysis.toObject() : { ...recording.aiAnalysis };
+    analysisObj.speakerSegments = recording.speakerSegments;
+
     res.json({
       success: true,
       message: 'AI Analysis completed successfully',
       recording,
-      analysis: recording.aiAnalysis,
+      analysis: analysisObj,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

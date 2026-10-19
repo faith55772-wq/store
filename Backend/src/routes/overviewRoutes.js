@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Recording = require('../models/Recording');
 const Store = require('../models/Store');
+const DailyReport = require('../models/DailyReport');
+const { generateDailyReport, generatePrintablePdfHtml } = require('../services/dailyReportService');
 
 // Overview Dashboard Statistics (Section 4.3)
 router.get('/stats', async (req, res) => {
@@ -150,6 +152,25 @@ router.get('/stats', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Download Overview PDF Report (Section 4.3.4)
+router.get('/pdf', async (req, res) => {
+  try {
+    const { date, storeId = 'all' } = req.query;
+    const targetDate = date || new Date().toISOString().split('T')[0];
+
+    let report = await DailyReport.findOne({ date: targetDate, storeId });
+    if (!report) {
+      report = await generateDailyReport(targetDate, storeId);
+    }
+
+    const html = generatePrintablePdfHtml(report);
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(`Error generating Overview PDF: ${err.message}`);
   }
 });
 
