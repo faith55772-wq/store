@@ -49,8 +49,11 @@ initSocketIO(io);
 
 // Health check endpoint for Render.com deployment
 app.get('/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const isDbConnected = mongoose.connection.readyState === 1;
   res.json({
     status: 'ok',
+    database: isDbConnected ? 'connected' : 'connecting_or_check_whitelist',
     timestamp: new Date(),
     service: 'Store Listener Backend API',
     uptime: process.uptime(),
@@ -105,22 +108,21 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-async function startServer() {
-  try {
-    await connectDB();
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log(`=======================================================`);
-      console.log(`🚀 STORE LISTENER BACKEND READY`);
-      console.log(`📡 Server listening on port: ${PORT}`);
-      console.log(`🌐 Local:   http://localhost:${PORT}`);
-      console.log(`💬 Socket.IO real-time server connected`);
-      console.log(`🤖 Deepgram Nova-2 Integration: Enabled`);
-      console.log(`=======================================================`);
+function startServer() {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`=======================================================`);
+    console.log(`🚀 STORE LISTENER BACKEND READY`);
+    console.log(`📡 Server listening on port: ${PORT}`);
+    console.log(`🌐 Local:   http://localhost:${PORT}`);
+    console.log(`💬 Socket.IO real-time server connected`);
+    console.log(`🤖 Deepgram Nova-2 Integration: Enabled`);
+    console.log(`=======================================================`);
+    
+    // Connect to database in background with auto-retry
+    connectDB().catch((err) => {
+      console.warn('[Database] Background connect init notice:', err.message);
     });
-  } catch (error) {
-    console.error('Fatal: Failed to start server:', error.message);
-    process.exit(1);
-  }
+  });
 }
 
 startServer();
